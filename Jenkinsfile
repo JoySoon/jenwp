@@ -35,26 +35,13 @@ pipeline {
         }
       }
     }
-    stage('Maven Build') {
-      steps {
-        sh 'mvn clean install'
-        // maven 플러그인이 미리 설치 되어있어야 함.
-      }
-      post {
-        failure {
-          echo 'maven build failure'
-        }
-        success {
-          echo 'maven build success'
-        }
-      }
-    }
+
     stage('Docker image Build') {
       steps {
         sh "docker build -t ${DOCKERHUB1}:${currentBuild.number} -f wp-Dockerfile ."
-        sh "docker build -t ${DOCKERHUB1}:latest ."
+        sh "docker build -t ${DOCKERHUB1}:latest -f wp-Dockerfile ."
         sh "docker build -t ${DOCKERHUB2}:${currentBuild.number} -f db-Dockerfile ."
-        sh "docker build -t ${DOCKERHUB2}:latest ."
+        sh "docker build -t ${DOCKERHUB2}:latest -f db-Dockerfile ."
         // oolralra/sbimage:4 이런식으로 빌드가 될것이다.
         // currentBuild.number 젠킨스에서 제공하는 빌드넘버변수.
       }
@@ -98,7 +85,7 @@ pipeline {
       steps {
         git credentialsId: GITCREDENTIAL,
             url: GITDEPADD,
-            branch: 'main'
+            branch: 'master'
         
         // 이미지 태그 변경 후 메인 브랜치에 푸시
         sh "git config --global user.email ${GITEMAIL}"
@@ -107,10 +94,10 @@ pipeline {
         sh "sed -i 's@${DOCKERHUB2}:.*@${DOCKERHUB2}:${currentBuild.number}@g' deploy/deployment.yml"
         sh "git add ."
         sh "git commit -m 'fix:${DOCKERHUB1} ${currentBuild.number} image versioning'"
-        sh "git branch -M main"
+        sh "git branch -M master"
         sh "git remote remove origin"
         sh "git remote add origin ${GITDEPADD}"
-        sh "git push -u origin main"
+        sh "git push -u origin master"
 
       }
       post {
